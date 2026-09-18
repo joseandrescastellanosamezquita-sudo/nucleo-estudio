@@ -3,11 +3,11 @@ create extension if not exists pgcrypto;
 create table public.profiles (id uuid primary key references auth.users(id) on delete cascade,display_name text not null check (char_length(display_name) between 2 and 40),level integer not null default 1 check (level > 0),xp integer not null default 0 check (xp >= 0),created_at timestamptz not null default now());
 create table public.groups (id uuid primary key default gen_random_uuid(),name text not null check (char_length(name) between 3 and 50),owner_id uuid not null references public.profiles(id) on delete cascade,invite_code text not null unique default upper(substr(encode(gen_random_bytes(6),'hex'),1,8)),created_at timestamptz not null default now());
 create table public.group_members (group_id uuid references public.groups(id) on delete cascade,user_id uuid references public.profiles(id) on delete cascade,role text not null default 'member' check (role in ('owner','member')),xp integer not null default 0 check (xp >= 0),joined_at timestamptz not null default now(),primary key (group_id,user_id));
-create table public.study_sessions (id uuid primary key default gen_random_uuid(),user_id uuid not null references public.profiles(id) on delete cascade,group_id uuid references public.groups(id) on delete cascade,subject text not null check (subject in ('quimica','fisica','biologia')),minutes integer not null check (minutes between 1 and 240),xp_earned integer not null check (xp_earned between 0 and 1000),completed_at timestamptz not null default now());
+create table public.study_sessions (id uuid primary key default gen_random_uuid(),user_id uuid not null references public.profiles(id) on delete cascade,group_id uuid references public.groups(id) on delete cascade,subject text not null check (subject in ('quimica','fisica','biologia','calculo')),minutes integer not null check (minutes between 1 and 240),xp_earned integer not null check (xp_earned between 0 and 1000),completed_at timestamptz not null default now());
 alter table public.profiles enable row level security; alter table public.groups enable row level security; alter table public.group_members enable row level security; alter table public.study_sessions enable row level security;
 create or replace function public.is_group_member(requested_group uuid) returns boolean language sql stable security definer set search_path=public as $$ select exists(select 1 from public.group_members where group_id=requested_group and user_id=auth.uid()) $$;
 revoke all on function public.is_group_member(uuid) from public; grant execute on function public.is_group_member(uuid) to authenticated;
-create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$ begin insert into public.profiles(id,display_name) values(new.id,coalesce(new.raw_user_meta_data->>'display_name',split_part(new.email,'@',1))); return new; end $$;
+create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$ begin insert into public.profiles(id,display_name) values(new.id,coalesce(new.raw_user_meta_data->>'full_name',new.raw_user_meta_data->>'display_name',split_part(new.email,'@',1))); return new; end $$;
 create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
 create or replace function public.add_group_owner() returns trigger language plpgsql security definer set search_path=public as $$ begin insert into public.group_members(group_id,user_id,role) values(new.id,new.owner_id,'owner'); return new; end $$;
 create trigger on_group_created after insert on public.groups for each row execute procedure public.add_group_owner();
@@ -52,3 +52,21 @@ create policy "participants read turns" on public.duel_turns for select to authe
 -- calcula el resultado y usa service_role. El cliente autenticado nunca declara is_correct.
 revoke insert, update, delete on public.duel_turns from anon, authenticated;
 create index group_posts_recent_idx on public.group_posts(group_id,created_at desc); create index study_sessions_group_idx on public.study_sessions(group_id,completed_at desc); create index duels_group_idx on public.duels(group_id,created_at desc);
+
+-- Resultados diagnósticos sincronizados por usuario.
+create table public.diagnostic_results (id uuid primary key default gen_random_uuid(),user_id uuid not null references public.profiles(id) on delete cascade,subject text not null check(subject in ('quimica','fisica','biologia','calculo')),topic text not null,score integer not null check(score between 0 and 100),correct_count integer not null,question_count integer not null,taken_at timestamptz not null default now());
+alter table public.diagnostic_results enable row level security;
+create policy "read own diagnostics" on public.diagnostic_results for select to authenticated using(user_id=auth.uid());
+create policy "insert own diagnostics" on public.diagnostic_results for insert to authenticated with check(user_id=auth.uid());
+
+-- Estado privado por cuenta: agenda, planes, progreso y preferencias. El cliente solo
+-- puede acceder a la fila cuyo identificador coincide con la sesión autenticada.
+create table public.user_learning_state (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  state jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.user_learning_state enable row level security;
+create policy "read own learning state" on public.user_learning_state for select to authenticated using(user_id=auth.uid());
+create policy "insert own learning state" on public.user_learning_state for insert to authenticated with check(user_id=auth.uid());
+create policy "update own learning state" on public.user_learning_state for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Entorno de estudio adaptativo para Química, Física y Biología con sincronización Canvas." />
+  <meta name="description" content="Entorno de estudio adaptativo para Química, Física, Biología y Cálculo con agenda y planes personalizados." />
   <title>Núcleo — Aprende con intención</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,17 +20,20 @@
         <p class="nav-label">ESPACIO</p>
         <a class="nav-item active" data-route="inicio" href="#inicio"><span class="nav-icon">⌂</span> Inicio</a>
         <a class="nav-item" data-route="agenda" href="#agenda"><span class="nav-icon">□</span> Mi agenda <span class="nav-count" id="agenda-count">4</span></a>
+        <a class="nav-item" data-route="plan" href="#plan"><span class="nav-icon">◇</span> Plan personal</a>
+        <a class="nav-item" data-route="diagnostico" href="#diagnostico"><span class="nav-icon">◉</span> Diagnóstico</a>
         <p class="nav-label">ASIGNATURAS</p>
         <a class="nav-item" data-route="quimica" href="#quimica"><span class="subject-dot chem">⬡</span> Química</a>
         <a class="nav-item" data-route="fisica" href="#fisica"><span class="subject-dot physics">↗</span> Física</a>
         <a class="nav-item" data-route="biologia" href="#biologia"><span class="subject-dot bio">⌘</span> Biología</a>
+        <a class="nav-item" data-route="calculo" href="#calculo"><span class="subject-dot calculus">∫</span> Cálculo</a>
         <p class="nav-label">AVENTURA</p>
         <a class="nav-item" data-route="misiones" href="#misiones"><span class="nav-icon">✦</span> Misiones <span class="nav-count" id="quest-count">3</span></a>
         <a class="nav-item" data-route="grupo" href="#grupo"><span class="nav-icon">♟</span> Grupo de estudio</a>
         <a class="nav-item" data-route="arena" href="#arena"><span class="nav-icon">⚔</span> Arena científica</a>
         <p class="nav-label">SISTEMA</p>
         <a class="nav-item" data-route="metodo" href="#metodo"><span class="nav-icon">◎</span> Mi método</a>
-        <button class="nav-item nav-button" id="open-canvas"><span class="nav-icon">↻</span> Integración Canvas <span class="status-dot"></span></button>
+        <button class="nav-item nav-button" id="account-button"><span class="nav-icon">●</span> Cuenta privada <span class="status-dot" id="account-status"></span></button>
       </nav>
       <div class="level-card">
         <div class="level-head"><span class="level-orb" id="level-orb">1</span><div><small>NIVEL ACTUAL</small><strong id="level-name">Aprendiz</strong></div><b id="xp-label">0 XP</b></div>
@@ -41,8 +44,8 @@
         <p>Tu constancia está construyendo memoria duradera.</p>
         <div class="week" id="week-dots"></div>
       </div>
-      <button class="profile" id="reset-demo" title="Reiniciar datos locales">
-        <span class="avatar">JC</span><span><strong>José Castellanos</strong><small>Biotecnología + Civil</small></span><span>⋮</span>
+      <button class="profile" id="profile-button" title="Gestionar cuenta">
+        <span class="avatar" id="profile-avatar">NU</span><span><strong id="profile-name">Estudiante</strong><small id="profile-mode">Modo local</small></span><span>⋮</span>
       </button>
     </aside>
 
@@ -51,24 +54,41 @@
         <button class="menu-button" id="menu-button" aria-label="Abrir menú">☰</button>
         <div class="crumb"><span id="section-kicker">ESPACIO PERSONAL</span><strong id="section-title">Inicio</strong></div>
         <div class="top-actions">
+          <button class="icon-button" id="theme-toggle" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
           <button class="icon-button" id="quick-focus" title="Temporizador de enfoque">◷</button>
-          <button class="sync-pill" id="sync-button"><span>↻</span><span><strong>Canvas</strong><small id="sync-label">Modo demostración</small></span></button>
+          <button class="sync-pill" id="new-event-button"><span>＋</span><span><strong>Nueva actividad</strong><small id="sync-label">Agenda personal</small></span></button>
         </div>
       </header>
       <div id="app" class="content" aria-live="polite"></div>
     </main>
   </div>
 
-  <dialog id="canvas-dialog" class="modal">
-    <button class="modal-close" data-close="canvas-dialog" aria-label="Cerrar">×</button>
-    <div class="modal-icon">↻</div>
-    <p class="eyebrow">INTEGRACIÓN</p>
-    <h2>Sincroniza con Canvas</h2>
-    <p>Importa cursos, módulos y tareas. El token permanece en el servidor y nunca se almacena en el navegador.</p>
-    <div class="security-note"><span>✓</span><div><strong>Conexión preparada</strong><small>Configura <code>CANVAS_BASE_URL</code> y <code>CANVAS_API_TOKEN</code> en el servidor.</small></div></div>
-    <button class="primary full" id="dialog-sync">Sincronizar ahora</button>
-    <label class="file-button">Importar respaldo JSON<input type="file" id="json-import" accept="application/json" hidden></label>
-    <small class="modal-foot">Si el servidor no está configurado, se cargarán datos de muestra para explorar el flujo.</small>
+  <dialog id="event-dialog" class="modal event-modal">
+    <button class="modal-close" data-close="event-dialog" aria-label="Cerrar">×</button>
+    <div class="modal-icon">＋</div>
+    <p class="eyebrow">AGENDA PERSONAL</p>
+    <h2>Nueva actividad</h2>
+    <form id="event-form" class="event-form">
+      <label>Tipo<select id="event-type" required><option value="task">Tarea</option><option value="project">Proyecto</option><option value="exam">Examen</option></select></label>
+      <label>Título<input id="event-title" maxlength="100" required placeholder="Ej. Parcial de derivadas"></label>
+      <label>Curso<select id="event-course" required><option value="quimica">Química</option><option value="fisica">Física</option><option value="biologia">Biología</option><option value="calculo">Cálculo</option><option value="other">Otro curso</option></select></label>
+      <label id="other-course-wrap" hidden>Nombre del curso<input id="event-other-course" maxlength="60" placeholder="Nombre del curso"></label>
+      <label id="topic-wrap">Tema<select id="event-topic"></select></label>
+      <label>Fecha y hora<input id="event-date" type="datetime-local" required></label>
+      <label>Horas estimadas<input id="event-hours" type="number" min="0.5" max="100" step="0.5" value="2"></label>
+      <label>Notas<textarea id="event-notes" maxlength="400" placeholder="Instrucciones, alcance o recursos"></textarea></label>
+      <button class="primary full" type="submit">Guardar actividad</button>
+    </form>
+    <small class="modal-foot">Los exámenes compatibles generan automáticamente una preparación distribuida.</small>
+  </dialog>
+
+  <dialog id="account-dialog" class="modal">
+    <button class="modal-close" data-close="account-dialog" aria-label="Cerrar">×</button>
+    <div class="modal-icon">●</div><p class="eyebrow">CUENTA PRIVADA</p><h2 id="account-title">Tus datos</h2>
+    <p id="account-copy">En modo local, los datos viven en este navegador. Configura Supabase para sincronizarlos de forma privada entre dispositivos.</p>
+    <button class="primary full" id="account-login">Continuar con Google</button>
+    <button class="secondary full" id="account-logout" hidden>Cerrar sesión</button>
+    <button class="secondary full" id="reset-demo">Reiniciar datos locales</button>
   </dialog>
 
   <dialog id="study-dialog" class="modal study-modal">
@@ -77,6 +97,15 @@
   </dialog>
 
   <div class="toast" id="toast" role="status"></div>
+  <section class="access-gate" id="access-gate" hidden>
+    <div class="gate-panel">
+      <span class="brand-mark">N</span><p class="eyebrow">ACCESO ACADÉMICO</p>
+      <h1>Tu aprendizaje, en una cuenta</h1>
+      <p id="gate-description">Accede con Google para guardar de forma privada tu progreso, agenda y planes.</p>
+      <button class="google-button" id="gate-google-button"><span>G</span> Continuar con Google</button>
+      <small>Núcleo solo solicita identidad básica. No accede a Gmail ni a Google Drive.</small>
+    </div>
+  </section>
   <script src="app.js" type="module"></script>
 </body>
 </html>

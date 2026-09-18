@@ -1,105 +1,73 @@
-# Núcleo — entorno de estudio científico
+# Núcleo — estudio científico personalizado
 
-Aplicación web local-first para **Química, Física y Biología**, diseñada alrededor de recuperación activa, práctica espaciada, intercalado y elaboración causal. La versión 2 añade progresión RPG y grupos de estudio privados.
+Aplicación web para **Química, Física, Biología y Cálculo**. Combina diagnósticos por macrotema, recuperación activa, práctica intercalada, calendario personal, preparación automática para exámenes, niveles RPG y grupos privados.
 
-## Publicación mediante GitHub Pages
+## Funciones principales
 
-El flujo `.github/workflows/pages.yml` publica automáticamente el sitio cuando se envía código a `main`. En el repositorio, abre **Settings → Pages → Source** y selecciona **GitHub Actions**. La URL resultante seguirá el patrón:
+- Cuenta de Google mediante Supabase Auth.
+- Progreso, agenda, planes y preferencias guardados por usuario.
+- RLS: cada cuenta solo puede leer y modificar su propia fila de aprendizaje.
+- Tareas, proyectos y exámenes; los exámenes usan una señal visual distinta.
+- Plan regresivo para exámenes de los cuatro cursos compatibles.
+- Materias externas se guardan sin generar contenido que la plataforma no conoce.
+- Diagnóstico general o por macrotema, sin porcentajes inventados.
+- Arena con 48 preguntas barajadas entre cuatro asignaturas.
+- Tema claro y oscuro.
+
+## Publicar en GitHub Pages
+
+El flujo `.github/workflows/pages.yml` publica `main`. En **Settings → Pages**, elige **GitHub Actions**. La URL de este proyecto es:
 
 ```text
-https://USUARIO.github.io/nucleo-estudio/
+https://joseandrescastellanosamezquita-sudo.github.io/nucleo-estudio/
 ```
 
-La versión pública es estática. El RPG individual y el progreso local funcionan sin servidor.
+## Activar acceso con Google y guardado privado
 
-## Mecánicas RPG
+La interfaz ya está programada, pero Google no puede autenticar usuarios hasta que se conecte un proyecto de Supabase:
 
-- Experiencia y niveles vinculados a recuperación activa y concentración.
-- Misiones con criterios verificables y recompensas reclamables.
-- Fragmentos para futuras personalizaciones, sin ventajas académicas.
-- Logros y racha de estudio.
-- La plataforma no recompensa simplemente abrirla o dejar una pestaña activa.
+1. Crea un proyecto en Supabase.
+2. Ejecuta todo `supabase-schema.sql` en **SQL Editor**.
+3. En **Authentication → URL Configuration** configura:
+   - Site URL: `https://joseandrescastellanosamezquita-sudo.github.io/nucleo-estudio/`
+   - Redirect URL adicional: la misma URL.
+4. En Google Cloud crea un cliente OAuth de tipo **Web application**.
+5. En **Authorized JavaScript origins** agrega `https://joseandrescastellanosamezquita-sudo.github.io`.
+6. En **Authorized redirect URIs** agrega el callback que Supabase muestra en **Authentication → Providers → Google**; tiene la forma `https://TU-PROYECTO.supabase.co/auth/v1/callback`.
+7. Copia el Client ID y Client Secret a ese proveedor de Google en Supabase y actívalo.
+8. En `config.js`, pega únicamente la Project URL y la clave pública `anon`:
 
-## Grupos privados
+```js
+export const NUCLEO_CONFIG = {
+  supabaseUrl: "https://TU-PROYECTO.supabase.co",
+  supabaseAnonKey: "TU-CLAVE-ANON-PUBLICA",
+  requireAccount: true
+};
+```
 
-La interfaz incluye:
+La clave `anon` es pública por diseño; la privacidad depende de las políticas RLS incluidas. Nunca publiques `service_role`, Client Secret de Google ni contraseñas en el repositorio.
 
-- Salas de estudio con temporizador y presencia en tiempo real.
-- Retos cooperativos semanales.
-- Clasificación entre amigos basada en actividad académica.
-- Preguntas, explicaciones y votos de utilidad dentro del grupo.
-- Enfrentamientos científicos entre personajes basados en precisión y retroalimentación.
+Sin URL/clave de Supabase, el sitio permite modo local para revisión. Cuando están configuradas y `requireAccount` es `true`, Google se vuelve requisito de entrada.
 
-Sin backend muestra explícitamente datos ficticios. Para activar cuentas reales:
+Documentación oficial: [Google Auth con Supabase](https://supabase.com/docs/guides/auth/social-login/auth-google) y [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
-1. Crea un proyecto de Supabase.
-2. Ejecuta `supabase-schema.sql` en el editor SQL.
-3. Copia la URL del proyecto y la clave pública `anon` en `config.js`.
-4. En Realtime Settings, desactiva acceso público para exigir los controles de los canales privados.
-5. Configura la URL de GitHub Pages como URL permitida de redirección en Auth.
+## Temario UVG
 
-Las políticas RLS restringen perfiles, sesiones, clasificaciones y presencia a integrantes del mismo grupo. **Nunca** se debe colocar una clave `service_role`, un token de Canvas o cualquier secreto en `config.js`.
+El temario incluido funciona como base editable de ciencias y Cálculo I. UVG publica pensums y nombres de cursos, pero el programa detallado de cada sección no está disponible públicamente de forma equivalente a Canvas. Por eso la aplicación no afirma copiar el Canvas de una persona. Para ajustar exactamente temas, orden y alcance, edita `learning.js` usando el programa oficial entregado por el docente.
 
-Los duelos no recompensan velocidad. Cada turno exige una respuesta y muestra la explicación correspondiente. En producción, la selección de preguntas y la corrección deben ejecutarse en una función del servidor; el cliente no debe recibir anticipadamente la respuesta correcta.
+## Ejecutar localmente
 
-## Ejecutar
-
-Requiere Node.js 18 o posterior y no instala dependencias.
+Requiere Node.js 18 o posterior:
 
 ```bash
 npm start
 ```
 
-Abre `http://localhost:4173`. Sin configuración externa funciona en modo demostración y guarda el progreso en `localStorage`.
+Abre `http://localhost:4173`.
 
-## Conectar Canvas LMS
-
-1. Copia `.env.example` a `.env` o define las variables en el entorno de despliegue.
-2. Configura `CANVAS_BASE_URL` con el dominio HTTPS institucional.
-3. Configura `CANVAS_API_TOKEN` con un token OAuth o token personal autorizado.
-4. Exporta las variables antes de iniciar. Node no carga `.env` automáticamente:
-
-```bash
-set -a
-source .env
-set +a
-npm start
-```
-
-La credencial se usa únicamente en `server.mjs`. No se envía al navegador. El servidor consulta cursos activos, tareas y módulos mediante la API REST de Canvas, sigue la paginación y devuelve al cliente solo los datos académicos necesarios.
-
-> Para un despliegue multiusuario, sustituye el token global por OAuth 2.0 por usuario y una sesión cifrada del lado del servidor. No publiques un token personal en Git ni en código frontend.
-
-## Importación JSON
-
-El diálogo de Canvas permite importar un respaldo con esta estructura:
-
-```json
-{
-  "courses": [
-    {
-      "id": "curso-1",
-      "name": "Química General",
-      "assignments": [
-        { "id": "tarea-1", "title": "Equilibrio", "dueAt": "2026-09-25T18:00:00Z", "points": 10 }
-      ],
-      "modules": []
-    }
-  ]
-}
-```
-
-## Límites conocidos
-
-- La clasificación de asignaturas usa palabras clave del nombre del curso; puede ampliarse en `subjectFor()`.
-- Canvas aporta contenido y fechas. La generación automática de preguntas desde archivos o páginas requiere una fase posterior con extracción de contenido, revisión humana y un servicio de IA.
-- El planificador actual ordena por vencimiento. Una versión institucional debería incluir carga estimada, horario disponible y desempeño por concepto.
-
-## Fundamento
+## Fundamento de aprendizaje
 
 - Cepeda, N. J., et al. (2006). Distributed practice in verbal recall tasks. *Psychological Bulletin, 132*(3), 354–380. https://doi.org/10.1037/0033-2909.132.3.354
-- Huang, R., Ritzhaupt, A. D., Sommer, M., Zhu, J., Stephen, A., Valle, N., Hampton, J., & Li, J. (2020). The impact of gamification in educational settings on student learning outcomes: A meta-analysis. *Educational Technology Research and Development, 68*, 1875–1901. https://doi.org/10.1007/s11423-020-09807-z
-- Karpicke, J. D., & Blunt, J. R. (2011). Retrieval practice produces more learning than elaborative studying. *Science, 331*(6018), 772–775. https://doi.org/10.1126/science.1199327
+- Huang, R., et al. (2020). The impact of gamification in educational settings. *Educational Technology Research and Development, 68*, 1875–1901. https://doi.org/10.1007/s11423-020-09807-z
 - Roediger, H. L., & Karpicke, J. D. (2006). Test-enhanced learning. *Psychological Science, 17*(3), 249–255. https://doi.org/10.1111/j.1467-9280.2006.01693.x
 - Rohrer, D., & Taylor, K. (2007). The shuffling of mathematics problems improves learning. *Instructional Science, 35*, 481–498. https://doi.org/10.1007/s11251-007-9015-8
-- Instructure. (2026). *Canvas LMS REST API documentation*. https://developerdocs.instructure.com/services/canvas
