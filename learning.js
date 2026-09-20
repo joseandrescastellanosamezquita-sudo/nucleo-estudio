@@ -3,7 +3,7 @@ const p = (text, options, correct, explanation) => ({ text, options, correct, ex
 const w = (week, dates, content, assessment = "") => ({ week, dates, content, assessment });
 
 // Contenidos transcritos y agrupados a partir de los programas UVG 2026
-// proporcionados por el usuario. Las preguntas son originales de Núcleo.
+// proporcionados por el usuario. Las preguntas son originales de Nexo Estudio UVG.
 export const curriculum = {
   quimica: {
     name: "Química 2", icon: "⬡", program: "Programa Química 2 · UVG · Ciclo 2, 2026",

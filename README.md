@@ -1,4 +1,4 @@
-# Núcleo — estudio científico personalizado
+# Nexo Estudio UVG — estudio científico personalizado
 
 Aplicación web para **Química, Física, Biología y Cálculo**. Combina diagnósticos por macrotema, recuperación activa, práctica intercalada, calendario personal, preparación automática para exámenes, niveles RPG y grupos privados.
 
@@ -52,7 +52,11 @@ La clave **publishable** es pública por diseño; la privacidad depende de las p
 
 Con `requireAccount: true`, el sitio permanece bloqueado si faltan la URL o la clave pública. Cuando ambas están configuradas, toda persona debe crear una cuenta o iniciar sesión antes de entrar.
 
-El formulario solicita **nombre visible, correo y contraseña**. El nombre identifica al usuario dentro de Núcleo; el correo funciona como identificador privado de acceso y permite recuperar la cuenta. Un sistema de solo alias y contraseña perdería una vía segura de recuperación y exigiría mantener un servidor adicional para resolver alias, por lo que no se recomienda para esta primera versión.
+El formulario solicita **nombre visible, correo y contraseña**. El nombre identifica al usuario dentro de Nexo Estudio UVG; el correo funciona como identificador privado de acceso y permite recuperar la cuenta. Un sistema de solo alias y contraseña perdería una vía segura de recuperación y exigiría mantener un servidor adicional para resolver alias, por lo que no se recomienda para esta primera versión.
+
+## Tutorial interactivo
+
+El recorrido guiado se muestra automáticamente la primera vez que cada cuenta entra en la plataforma. Explica la navegación, las rutas teóricas y prácticas, la agenda, los diagnósticos, los grupos y el sistema de progreso. Puede repetirse en cualquier momento con el botón **?** de la barra superior.
 
 Supabase usa el correo como identificador nativo para autenticación por contraseña. Un acceso mediante un nombre de usuario arbitrario requeriría construir y mantener un servidor de autenticación adicional; no es apropiado guardar contraseñas directamente desde GitHub Pages.
 
