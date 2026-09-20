@@ -3,9 +3,9 @@ import {
   getCurrentUser, signOut, onAuthChange,
   loadLearningState, saveLearningState, saveDiagnosticResults,
   createStudyGroup, joinGroup, getStudyGroup, listGroupMembers, listGroupPosts, publishGroupPost
-} from "./social.js?v=8";
-import { curriculum, learningGuides, topicQuestions, diagnosticQuestions, allQuestions } from "./learning.js?v=8";
-import { NUCLEO_CONFIG } from "./config.js?v=8";
+} from "./social.js?v=10";
+import { curriculum, learningGuides, topicQuestions, diagnosticQuestions, allQuestions } from "./learning.js?v=10";
+import { NUCLEO_CONFIG } from "./config.js?v=10";
 
 const subjects = {
   quimica: { name:"Química 2", cls:"chem", icon:"⬡", color:"#d86b48", method:"Representaciones múltiples + recuperación activa", description:"Termodinámica, cinética y equilibrio conforme al programa UVG 2026.", steps:["Predice antes de calcular","Traduce entre partículas, símbolos y evidencia","Resuelve sin mirar el ejemplo","Explica el error y vuelve a intentarlo"] },
@@ -21,6 +21,33 @@ let cloudTimer = null;
 let timer = { remaining:25*60, id:null };
 let roomTimer = { remaining:25*60, id:null };
 const app = document.querySelector("#app");
+
+const tutorialSteps=[
+  {icon:"N",title:"Bienvenido a Nexo Estudio UVG",copy:"Este recorrido te mostrará cómo organizar tus cursos, aprender temas nuevos y estudiar con otras personas. Puedes cerrarlo y volver a abrirlo con el botón ?.",route:"inicio",target:".brand"},
+  {icon:"☰",title:"Muévete por la plataforma",copy:"El menú reúne tu espacio personal, las cuatro asignaturas, las actividades colaborativas y el método de aprendizaje. En pantallas pequeñas se abre con el botón ☰.",route:"inicio",target:"#sidebar nav",menu:true},
+  {icon:"∫",title:"Aprende por macrotemas",copy:"Cada asignatura está dividida en macrotemas. Abre primero el documento teórico o práctico y después responde su banco de preguntas. Las sesiones mixtas mantienen la misma cantidad de teoría y práctica.",route:"calculo",target:".learning-paths"},
+  {icon:"□",title:"Organiza fechas y exámenes",copy:"En Mi agenda puedes registrar tareas, proyectos y exámenes. Cuando agregas un examen de un curso compatible, Nexo genera una preparación distribuida automáticamente.",route:"agenda",target:".agenda-layout"},
+  {icon:"◉",title:"Mide tu punto de partida",copy:"El diagnóstico combina preguntas teóricas y prácticas. El resultado se guarda por macrotema y ayuda a identificar qué debes priorizar; no pretende reemplazar una calificación formal.",route:"diagnostico",target:".diagnostic-subject"},
+  {icon:"♟",title:"Estudia con tus conocidos",copy:"Crea un grupo y comparte su código, o introduce el código que recibiste. Dentro del grupo podrás verificar integrantes, publicar dudas y utilizar el bloque de enfoque.",route:"grupo",target:".group-access-grid"},
+  {icon:"✦",title:"Construye progreso real",copy:"Las sesiones, diagnósticos y bloques de enfoque otorgan experiencia. El nivel representa acciones de estudio completadas, no sustituye la comprensión ni la precisión.",route:"inicio",target:".level-card",menu:true}
+];
+let tutorialIndex=0,tutorialOpen=false,tutorialTarget=null;
+
+function tutorialStorageKey(){return `nexo-tutorial-v1:${currentUser?.id||"local"}`}
+function clearTutorialTarget(){tutorialTarget?.classList.remove("tutorial-target");tutorialTarget=null}
+function closeTutorial(completed=true){clearTutorialTarget();tutorialOpen=false;document.querySelector("#tutorial-layer").hidden=true;document.querySelector("#sidebar").classList.remove("open");if(completed)localStorage.setItem(tutorialStorageKey(),"done")}
+function showTutorialStep(){
+  const step=tutorialSteps[tutorialIndex],sidebar=document.querySelector("#sidebar");clearTutorialTarget();
+  if(step.route){location.hash=step.route;route()}
+  sidebar.classList.toggle("open",Boolean(step.menu&&innerWidth<=900));
+  document.querySelector("#tutorial-step").textContent=`PASO ${tutorialIndex+1} DE ${tutorialSteps.length}`;
+  document.querySelector("#tutorial-icon").textContent=step.icon;document.querySelector("#tutorial-title").textContent=step.title;document.querySelector("#tutorial-copy").textContent=step.copy;
+  document.querySelector("#tutorial-prev").disabled=tutorialIndex===0;document.querySelector("#tutorial-next").textContent=tutorialIndex===tutorialSteps.length-1?"Terminar":"Siguiente";
+  document.querySelector("#tutorial-progress").innerHTML=tutorialSteps.map((_,i)=>`<i class="${i<=tutorialIndex?"active":""}"></i>`).join("");
+  setTimeout(()=>{tutorialTarget=document.querySelector(step.target);if(tutorialTarget){tutorialTarget.classList.add("tutorial-target");if(!step.menu)tutorialTarget.scrollIntoView({behavior:"smooth",block:"center"})}},120);
+}
+function startTutorial(force=false){if(tutorialOpen||(!force&&localStorage.getItem(tutorialStorageKey())))return;tutorialOpen=true;tutorialIndex=0;document.querySelector("#tutorial-layer").hidden=false;showTutorialStep()}
+function maybeStartTutorial(){const gate=document.querySelector("#access-gate");if(!gate.hidden)return;setTimeout(()=>startTutorial(false),450)}
 
 function loadLocal(){try{return{...structuredClone(initial),...JSON.parse(localStorage.getItem("nucleo-state-demo")||localStorage.getItem("nucleo-state"))}}catch{return structuredClone(initial)}}
 function localStateKey(){return currentUser?`nucleo-state:${currentUser.id}`:"nucleo-state-demo"}
@@ -115,7 +142,7 @@ function renderPlan(){
   bindCommon();
 }
 function examPlanHTML(exam){
-  const s=subjects[exam.course];if(!s)return`<article class="card plan-card unsupported"><span class="exam-chip">EXAMEN EXTERNO</span><h2>${escapeHTML(exam.title)}</h2><p>Queda en la agenda, pero Núcleo no genera contenido para ${escapeHTML(exam.courseName||"este curso")} porque todavía no posee su temario.</p></article>`;
+  const s=subjects[exam.course];if(!s)return`<article class="card plan-card unsupported"><span class="exam-chip">EXAMEN EXTERNO</span><h2>${escapeHTML(exam.title)}</h2><p>Queda en la agenda, pero Nexo Estudio UVG no genera contenido para ${escapeHTML(exam.courseName||"este curso")} porque todavía no posee su temario.</p></article>`;
   const plan=state.plans[exam.id]||generateExamPlan(exam);return`<article class="card plan-card"><div class="plan-head"><div><span class="exam-chip">${s.icon} ${s.name.toUpperCase()} · ${relative(exam.dueAt)}</span><h2>${escapeHTML(exam.title)}</h2><p>${escapeHTML(curriculum[exam.course].topics[exam.topic]?.name||"Evaluación general")} · ${fmtDate(exam.dueAt,{year:"numeric",hour:"numeric",minute:"2-digit"})}</p></div><button class="secondary" data-regenerate="${exam.id}">Recalcular</button></div><div class="timeline">${plan.sessions.map((x,i)=>`<div class="plan-session"><span>${i+1}</span><div><small>${fmtDate(`${x.date}T12:00`,{weekday:"short"})} · ${x.minutes} min</small><strong>${escapeHTML(x.title)}</strong><p>${escapeHTML(x.detail)}</p></div><button class="go" data-study="${exam.course}">Practicar</button></div>`).join("")}</div></article>`;
 }
 function renderDiagnostics(){app.innerHTML=`<section class="hero"><div><p class="eyebrow">LÍNEA BASE REAL</p><h1>Diagnóstico de dominio</h1><p>Evalúa comprensión conceptual y capacidad de aplicación con una distribución 50/50.</p></div></section><div class="confidence-note">Cada prueba combina la misma cantidad de preguntas teóricas y prácticas. Orienta el estudio, pero no equivale a una calificación certificada.</div>${Object.entries(curriculum).map(([key,s])=>`<section class="diagnostic-subject"><div class="card-title" style="margin-top:25px"><h2>${s.icon} ${s.name}</h2><button class="primary" data-diagnostic="${key}:general">Evaluación general · ${diagnosticQuestions(key).length} preguntas</button></div><div class="topic-grid">${Object.entries(s.topics).map(([id,t])=>`<article class="topic-card"><div><strong>${escapeHTML(t.name)}</strong><small>${diagnosticQuestions(key,id).length} preguntas · mitad teoría y mitad práctica</small><button class="text-button" data-diagnostic="${key}:${id}" style="margin-top:8px">Evaluar macrotema →</button></div><span class="mastery-score">${masteryLabel(state.mastery?.[key]?.[id]??null)}</span></article>`).join("")}</div></section>`).join("")}`;bindDiagnosticButtons()}
@@ -191,12 +218,12 @@ async function initializeAccount(){
   currentUser=await getCurrentUser();
   gate.hidden=Boolean(!(NUCLEO_CONFIG.requireAccount&&!currentUser));
   if(currentUser)await hydrateAccount();
-  updateChrome();route();
+  updateChrome();route();maybeStartTutorial();
   await onAuthChange(async(authEvent,user)=>{
     const changed=user?.id!==currentUser?.id;currentUser=user;
     if(user&&changed)await hydrateAccount();
     if(!user)state=structuredClone(initial);
-    gate.hidden=Boolean(!(NUCLEO_CONFIG.requireAccount&&!user));updateChrome();route();
+    gate.hidden=Boolean(!(NUCLEO_CONFIG.requireAccount&&!user));updateChrome();route();if(user)maybeStartTutorial();
     if(authEvent==="PASSWORD_RECOVERY")document.querySelector("#password-dialog").showModal();
   });
 }
@@ -227,13 +254,18 @@ async function submitAuth(event){
     }else{
       const data=await signInWithPassword({email,password});currentUser=data.user;
     }
-    await hydrateAccount();document.querySelector("#access-gate").hidden=true;updateChrome();route();toast("Sesión iniciada de forma segura");
+    await hydrateAccount();document.querySelector("#access-gate").hidden=true;updateChrome();route();maybeStartTutorial();toast("Sesión iniciada de forma segura");
   }catch(error){toast(error.message||"No se pudo completar el acceso")}
 }
 
 document.documentElement.dataset.theme=localStorage.getItem("nucleo-theme")||"light";
 document.querySelector("#theme-toggle").onclick=()=>{const next=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=next;localStorage.setItem("nucleo-theme",next)};
 document.querySelector("#menu-button").onclick=()=>document.querySelector("#sidebar").classList.toggle("open");
+document.querySelector("#tutorial-button").onclick=()=>startTutorial(true);
+document.querySelector("#tutorial-skip").onclick=()=>closeTutorial(true);
+document.querySelector("#tutorial-prev").onclick=()=>{if(tutorialIndex>0){tutorialIndex--;showTutorialStep()}};
+document.querySelector("#tutorial-next").onclick=()=>{if(tutorialIndex===tutorialSteps.length-1)closeTutorial(true);else{tutorialIndex++;showTutorialStep()}};
+window.addEventListener("keydown",event=>{if(event.key==="Escape"&&tutorialOpen)closeTutorial(true)});
 document.querySelector("#quick-focus").onclick=()=>{location.hash="agenda";setTimeout(()=>document.querySelector("#timer-toggle")?.click(),150)};
 document.querySelector("#new-event-button").onclick=openEventDialog;document.querySelector("#event-course").onchange=updateTopicSelect;document.querySelector("#event-form").onsubmit=submitEvent;
 document.querySelectorAll("#account-button,#profile-button").forEach(b=>b.onclick=()=>document.querySelector("#account-dialog").showModal());document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>document.querySelector(`#${b.dataset.close}`).close());

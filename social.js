@@ -1,4 +1,4 @@
-import { NUCLEO_CONFIG } from "./config.js?v=8";
+import { NUCLEO_CONFIG } from "./config.js?v=10";
 
 let clientPromise;
 export const isSocialConfigured = () => Boolean(NUCLEO_CONFIG.supabaseUrl && NUCLEO_CONFIG.supabaseAnonKey);

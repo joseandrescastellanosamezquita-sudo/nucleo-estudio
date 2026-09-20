@@ -1,0 +1,19 @@
+NEXO ESTUDIO UVG V10 — CORRECCIÓN DE INICIO DE SESIÓN
+
+La versión anterior incluía config.js sin la conexión de Supabase. Esta versión
+restaura la URL del proyecto y su clave pública publishable.
+
+CORRECCIÓN RÁPIDA
+1. En GitHub reemplaza:
+   - config.js
+   - index.html
+   - app.js
+   - social.js
+2. Presiona Commit changes.
+3. Espera de 1 a 3 minutos.
+4. Abre la página en una ventana privada o utiliza Ctrl+F5.
+5. Inicia sesión con la cuenta que ya habías creado.
+
+No ejecutes SQL, no borres usuarios y no crees otro proyecto de Supabase.
+
+El paquete completo también contiene el tutorial y el nombre Nexo Estudio UVG.

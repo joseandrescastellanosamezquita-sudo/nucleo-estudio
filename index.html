@@ -4,17 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Entorno de estudio adaptativo para Química, Física, Biología y Cálculo con agenda y planes personalizados." />
-  <title>Núcleo — Aprende con intención</title>
+  <title>Nexo Estudio UVG — Aprende con intención</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=10" />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="#inicio" aria-label="Ir al inicio">
-        <span class="brand-mark">N</span><span>NÚCLEO<small>aprende con intención</small></span>
+        <span class="brand-mark">N</span><span>NEXO ESTUDIO<small>UVG · aprende con intención</small></span>
       </a>
       <nav aria-label="Navegación principal">
         <p class="nav-label">ESPACIO</p>
@@ -54,6 +54,7 @@
         <button class="menu-button" id="menu-button" aria-label="Abrir menú">☰</button>
         <div class="crumb"><span id="section-kicker">ESPACIO PERSONAL</span><strong id="section-title">Inicio</strong></div>
         <div class="top-actions">
+          <button class="icon-button" id="tutorial-button" title="Ver tutorial" aria-label="Abrir tutorial">?</button>
           <button class="icon-button" id="theme-toggle" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
           <button class="icon-button" id="quick-focus" title="Temporizador de enfoque">◷</button>
           <button class="sync-pill" id="new-event-button"><span>＋</span><span><strong>Nueva actividad</strong><small id="sync-label">Agenda personal</small></span></button>
@@ -62,6 +63,17 @@
       <div id="app" class="content" aria-live="polite"></div>
     </main>
   </div>
+
+  <section class="tutorial-layer" id="tutorial-layer" hidden aria-live="polite">
+    <article class="tutorial-panel" role="dialog" aria-modal="false" aria-labelledby="tutorial-title">
+      <div class="tutorial-head"><span class="tutorial-step" id="tutorial-step">PASO 1 DE 7</span><button id="tutorial-skip" aria-label="Cerrar tutorial">×</button></div>
+      <div class="tutorial-icon" id="tutorial-icon">✦</div>
+      <h2 id="tutorial-title">Bienvenido</h2>
+      <p id="tutorial-copy"></p>
+      <div class="tutorial-progress" id="tutorial-progress" aria-hidden="true"></div>
+      <div class="tutorial-actions"><button class="secondary" id="tutorial-prev">Anterior</button><button class="primary" id="tutorial-next">Siguiente</button></div>
+    </article>
+  </section>
 
   <dialog id="event-dialog" class="modal event-modal">
     <button class="modal-close" data-close="event-dialog" aria-label="Cerrar">×</button>
@@ -109,7 +121,7 @@
   <section class="access-gate" id="access-gate" hidden>
     <div class="gate-panel">
       <span class="brand-mark">N</span><p class="eyebrow">ACCESO ACADÉMICO</p>
-      <h1>Accede a Núcleo</h1>
+      <h1>Accede a Nexo Estudio UVG</h1>
       <p id="gate-description">Usa tu correo y contraseña para conservar de forma privada el progreso, la agenda y los planes.</p>
       <div class="auth-tabs" role="tablist">
         <button class="auth-tab active" id="auth-login-tab" type="button">Iniciar sesión</button>
@@ -125,6 +137,6 @@
       <small>La contraseña se procesa mediante Supabase Auth y nunca se guarda en el código ni en el navegador.</small>
     </div>
   </section>
-  <script src="app.js?v=8" type="module"></script>
+  <script src="app.js?v=10" type="module"></script>
 </body>
 </html>
