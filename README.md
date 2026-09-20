@@ -11,6 +11,7 @@ Aplicación web para **Química, Física, Biología y Cálculo**. Combina diagn�
 - Plan regresivo para exámenes de los cuatro cursos compatibles.
 - Materias externas se guardan sin generar contenido que la plataforma no conoce.
 - Cada macrotema contiene una sección teórica y otra práctica, ambas con documento inicial.
+- Cada sección separa **tarjetas de recuperación** y **cuestionarios de opción múltiple**.
 - Diagnósticos y sesiones mixtas con distribución 50 % teórica y 50 % práctica.
 - Arena con 162 preguntas: 81 teóricas y 81 prácticas.
 - Grupos privados con código de invitación y lista verificable de integrantes.
