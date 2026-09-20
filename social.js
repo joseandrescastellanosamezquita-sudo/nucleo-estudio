@@ -13,11 +13,43 @@ export async function getSocialClient() {
   return clientPromise;
 }
 
-export async function signInWithGoogle() {
+export async function signUpWithPassword({ email, password, displayName }) {
   const client = await getSocialClient();
-  if (!client) throw new Error("La cuenta de Google todavía no está configurada.");
-  const redirectTo = `${location.origin}${location.pathname}`;
-  const { data, error } = await client.auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+  if (!client) throw new Error("El servicio de cuentas todavía no está configurado.");
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${location.origin}${location.pathname}`,
+      data: { display_name: displayName, full_name: displayName }
+    }
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function signInWithPassword({ email, password }) {
+  const client = await getSocialClient();
+  if (!client) throw new Error("El servicio de cuentas todavía no está configurado.");
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+export async function resetPassword(email) {
+  const client = await getSocialClient();
+  if (!client) throw new Error("El servicio de cuentas todavía no está configurado.");
+  const { data, error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: `${location.origin}${location.pathname}`
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePassword(password) {
+  const client = await getSocialClient();
+  if (!client) throw new Error("El servicio de cuentas todavía no está configurado.");
+  const { data, error } = await client.auth.updateUser({ password });
   if (error) throw error;
   return data;
 }
@@ -40,7 +72,7 @@ export async function signOut() {
 export async function onAuthChange(callback) {
   const client = await getSocialClient();
   if (!client) return null;
-  const { data } = client.auth.onAuthStateChange((_event, session) => callback(session?.user ?? null));
+  const { data } = client.auth.onAuthStateChange((event, session) => callback(event, session?.user ?? null));
   return data.subscription;
 }
 

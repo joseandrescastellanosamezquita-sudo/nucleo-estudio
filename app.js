@@ -1,15 +1,16 @@
 import {
-  isSocialConfigured, signInWithGoogle, getCurrentUser, signOut, onAuthChange,
+  isSocialConfigured, signUpWithPassword, signInWithPassword, resetPassword, updatePassword,
+  getCurrentUser, signOut, onAuthChange,
   loadLearningState, saveLearningState, saveDiagnosticResults
 } from "./social.js";
 import { curriculum, diagnosticQuestions, allQuestions } from "./learning.js";
 import { NUCLEO_CONFIG } from "./config.js";
 
 const subjects = {
-  quimica: { name:"Química", cls:"chem", icon:"⬡", color:"#d86b48", method:"Representaciones múltiples + recuperación activa", description:"Conecta lo macroscópico, lo molecular y lo simbólico; luego recupera relaciones, mecanismos y cálculos sin apoyo.", steps:["Predice antes de calcular","Traduce entre partículas, símbolos y evidencia","Resuelve sin mirar el ejemplo","Explica el error y vuelve a intentarlo"] },
-  fisica: { name:"Física", cls:"physics", icon:"↗", color:"#4d69cc", method:"Ejemplos resueltos + práctica intercalada", description:"Construye el modelo antes de sustituir números y alterna tipos de problema para aprender a elegir principios.", steps:["Dibuja el sistema y declara supuestos","Selecciona el principio físico","Resuelve simbólicamente","Comprueba unidades y orden de magnitud"] },
-  biologia: { name:"Biología", cls:"bio", icon:"⌘", color:"#3b8e68", method:"Recuperación activa + elaboración causal", description:"Reconstruye procesos de memoria, compara sistemas y explica cómo una estructura habilita una función.", steps:["Reconstruye el proceso sin apuntes","Dibuja relaciones y flujos","Explica cada flecha causalmente","Contrasta casos y corrige vacíos"] },
-  calculo: { name:"Cálculo", cls:"calculus", icon:"∫", color:"#8a5bc2", method:"Ejemplos trabajados + práctica variada", description:"Conecta definición, representación gráfica y procedimiento; después decide qué herramienta aplicar en problemas nuevos.", steps:["Interpreta gráfica y definición","Estudia un ejemplo trabajado","Resuelve una variación sin apoyo","Verifica y explica cada decisión"] }
+  quimica: { name:"Química 2", cls:"chem", icon:"⬡", color:"#d86b48", method:"Representaciones múltiples + recuperación activa", description:"Termodinámica, cinética y equilibrio conforme al programa UVG 2026.", steps:["Predice antes de calcular","Traduce entre partículas, símbolos y evidencia","Resuelve sin mirar el ejemplo","Explica el error y vuelve a intentarlo"] },
+  fisica: { name:"Física 1", cls:"physics", icon:"↗", color:"#4d69cc", method:"Ejemplos resueltos + práctica intercalada", description:"Vectores, mecánica y principios de conservación conforme al programa UVG 2026.", steps:["Dibuja el sistema y declara supuestos","Selecciona el principio físico","Resuelve simbólicamente","Comprueba unidades y orden de magnitud"] },
+  biologia: { name:"Biología General", cls:"bio", icon:"⌘", color:"#3b8e68", method:"Recuperación activa + elaboración causal", description:"Ecología, evolución, diversidad y fisiología animal conforme al programa UVG 2026.", steps:["Reconstruye el proceso sin apuntes","Dibuja relaciones y flujos","Explica cada flecha causalmente","Contrasta casos y corrige vacíos"] },
+  calculo: { name:"Cálculo 1", cls:"calculus", icon:"∫", color:"#8a5bc2", method:"Ejemplos trabajados + práctica variada", description:"Límites, derivadas, optimización e integrales conforme al cronograma UVG 2026.", steps:["Interpreta gráfica y definición","Estudia un ejemplo trabajado","Resuelve una variación sin apoyo","Verifica y explica cada decisión"] }
 };
 
 const initial = { reviews:0, streak:0, lastStudyDate:null, completed:[], focusMinutes:0, xp:0, coins:0, questClaims:[], battleWins:0, mastery:{}, events:[], plans:{}, communityPosts:[], curriculumPreferences:{} };
@@ -20,9 +21,10 @@ let timer = { remaining:25*60, id:null };
 let roomTimer = { remaining:25*60, id:null };
 const app = document.querySelector("#app");
 
-function loadLocal(){ try{return {...structuredClone(initial),...JSON.parse(localStorage.getItem("nucleo-state"))}}catch{return structuredClone(initial)} }
+function loadLocal(){try{return{...structuredClone(initial),...JSON.parse(localStorage.getItem("nucleo-state-demo")||localStorage.getItem("nucleo-state"))}}catch{return structuredClone(initial)}}
+function localStateKey(){return currentUser?`nucleo-state:${currentUser.id}`:"nucleo-state-demo"}
 function save(){
-  localStorage.setItem("nucleo-state",JSON.stringify(state));
+  localStorage.setItem(localStateKey(),JSON.stringify(state));
   if(currentUser&&isSocialConfigured()){
     clearTimeout(cloudTimer);
     cloudTimer=setTimeout(()=>saveLearningState(state).catch(()=>toast("Guardado local; la nube no respondió")),450);
@@ -72,7 +74,8 @@ function renderSubject(key){
   const s=subjects[key],events=sortedEvents().filter(e=>e.course===key&&!state.completed.includes(e.id));
   app.innerHTML=`<section class="subject-hero ${s.cls}"><p class="eyebrow">${s.method.toUpperCase()}</p><h1>${s.name}</h1><p>${s.description}</p><div class="subject-stats"><div><strong>${masteryLabel(subjectMastery(key))}</strong><small>Dominio medido</small></div><div><strong>${Object.keys(curriculum[key].topics).length}</strong><small>Macrotemas</small></div><div><strong>${events.length}</strong><small>Actividades</small></div></div></section><div class="tabs"><button class="tab active">Ruta de estudio</button><button class="tab" data-study="${key}">Repaso activo</button><button class="tab" data-new-event>Nueva actividad</button></div>
   <div class="method-grid"><article class="card method-card"><p class="eyebrow">SECUENCIA RECOMENDADA</p><h3>${s.method}</h3><p>Cada sesión exige producir una respuesta antes de consultar la solución.</p>${s.steps.map((x,i)=>`<div class="method-step"><span class="step-num">0${i+1}</span><div><h3>${x}</h3><p>${i===0?"Activa conocimientos previos y define el problema.":i===3?"Registra la dificultad para espaciar el siguiente intento.":"Haz visible el razonamiento, no solo el resultado."}</p></div></div>`).join("")}<button class="primary full" data-study="${key}">Comenzar recuperación</button></article>
-  <div><article class="card"><div class="card-title"><h2>Macrotemas base</h2><a href="#diagnostico">Evaluar →</a></div>${Object.entries(curriculum[key].topics).map(([id,t])=>`<div class="assignment-row"><i class="indicator" style="background:${s.color}"></i><div><strong>${escapeHTML(t.name)}</strong><small>${masteryLabel(state.mastery?.[key]?.[id]??null)}</small></div><button class="go" data-diagnostic="${key}:${id}">Diagnóstico</button></div>`).join("")}</article><article class="card" style="margin-top:18px"><div class="card-title"><h2>Agenda de ${s.name}</h2><button class="text-button" data-new-event>Agregar</button></div>${events.length?events.map(e=>eventCard(e,true)).join(""):'<div class="empty">No hay actividades pendientes para este curso.</div>'}</article></div></div>`;
+  <div><article class="card"><div class="card-title"><h2>Macrotemas del programa</h2><a href="#diagnostico">Evaluar →</a></div>${Object.entries(curriculum[key].topics).map(([id,t])=>`<div class="assignment-row"><i class="indicator" style="background:${s.color}"></i><div><strong>${escapeHTML(t.name)}</strong><small>${masteryLabel(state.mastery?.[key]?.[id]??null)}</small></div><button class="go" data-diagnostic="${key}:${id}">Diagnóstico</button></div>`).join("")}</article><article class="card" style="margin-top:18px"><div class="card-title"><h2>Agenda de ${s.name}</h2><button class="text-button" data-new-event>Agregar</button></div>${events.length?events.map(e=>eventCard(e,true)).join(""):'<div class="empty">No hay actividades pendientes para este curso.</div>'}</article></div></div>
+  <article class="card program-card"><div class="card-title"><div><p class="eyebrow">PROGRAMA UVG 2026</p><h2>${escapeHTML(curriculum[key].program)}</h2></div><span class="due">${curriculum[key].schedule.length} semanas</span></div><div class="program-schedule">${curriculum[key].schedule.map(item=>`<div class="program-week"><span>S${item.week}</span><div><small>${escapeHTML(item.dates)}</small><strong>${escapeHTML(item.content)}</strong>${item.assessment?`<em>${escapeHTML(item.assessment)}</em>`:""}</div></div>`).join("")}</div><p class="program-note">Transcripción del programa proporcionado. Las fechas o evaluaciones identificadas por grupo deben confirmarse con el docente.</p></article>`;
   bindCommon();bindDiagnosticButtons();
 }
 function renderAgenda(){
@@ -135,7 +138,72 @@ function bindRoomTimer(){const display=document.querySelector("#room-timer"),tog
 function updateChrome(){const info=levelInfo();document.querySelector("#level-orb").textContent=info.level;document.querySelector("#level-name").textContent=info.name;document.querySelector("#xp-label").textContent=`${state.xp} XP`;document.querySelector("#xp-bar").style.width=`${info.progress}%`;document.querySelector("#streak-days").textContent=state.streak||0;document.querySelector("#agenda-count").textContent=sortedEvents().filter(e=>!state.completed.includes(e.id)).length;const available=(state.reviews>=3&&!state.questClaims.includes("recall")?1:0)+(state.focusMinutes>=25&&!state.questClaims.includes("focus")?1:0)+(Object.keys(state.plans).length&&!state.questClaims.includes("planner")?1:0);document.querySelector("#quest-count").textContent=available||Math.max(0,3-state.questClaims.length);const name=displayName();document.querySelector("#profile-name").textContent=name;document.querySelector("#profile-avatar").textContent=initials(name);document.querySelector("#profile-mode").textContent=currentUser?"Sincronización privada":"Modo local";document.querySelector("#account-status").classList.toggle("online",Boolean(currentUser));document.querySelector("#account-login").hidden=Boolean(currentUser);document.querySelector("#account-logout").hidden=!currentUser;document.querySelector("#account-copy").textContent=currentUser?`Sesión activa como ${currentUser.email}. Tu progreso se sincroniza con una fila privada protegida por RLS.`:"En modo local, los datos viven en este navegador. Configura Supabase para sincronizarlos de forma privada entre dispositivos."}
 function initWeek(){const names=["L","M","X","J","V","S","D"],day=(new Date().getDay()+6)%7;document.querySelector("#week-dots").innerHTML=names.map((n,i)=>`<span class="day-dot ${i<day&&state.streak?"done":i===day?"today":""}"><i></i>${n}</span>`).join("")}
 function toast(message){const t=document.querySelector("#toast");t.textContent=message;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000)}
-async function initializeAccount(){const gate=document.querySelector("#access-gate");if(!isSocialConfigured()){gate.hidden=true;updateChrome();return}currentUser=await getCurrentUser();gate.hidden=Boolean(!(NUCLEO_CONFIG.requireAccount&&!currentUser));if(currentUser){try{const cloud=await loadLearningState();if(cloud)state={...structuredClone(initial),...cloud};else await saveLearningState(state);localStorage.setItem("nucleo-state",JSON.stringify(state))}catch{toast("No se pudo leer la nube; se conserva la copia local")}}updateChrome();route();await onAuthChange(user=>{currentUser=user;gate.hidden=Boolean(!(NUCLEO_CONFIG.requireAccount&&!user));updateChrome()})}
+async function hydrateAccount(){
+  if(!currentUser)return;
+  try{
+    const cloud=await loadLearningState();
+    const ownLocal=JSON.parse(localStorage.getItem(`nucleo-state:${currentUser.id}`)||"null");
+    if(cloud)state={...structuredClone(initial),...cloud};
+    else{state=ownLocal?{...structuredClone(initial),...ownLocal}:structuredClone(initial);await saveLearningState(state)}
+    localStorage.setItem(`nucleo-state:${currentUser.id}`,JSON.stringify(state));
+  }catch{toast("No se pudo leer la nube; se conserva la copia local")}
+}
+async function initializeAccount(){
+  const gate=document.querySelector("#access-gate");
+  if(!isSocialConfigured()){
+    const locked=Boolean(NUCLEO_CONFIG.requireAccount);
+    gate.hidden=!locked;
+    if(locked){
+      document.querySelector("#gate-description").textContent="El acceso privado todavía no está habilitado. El administrador debe configurar la URL y la clave pública de Supabase en config.js.";
+      document.querySelector("#auth-form").hidden=true;
+      document.querySelector(".auth-tabs").hidden=true;
+      document.querySelector("#auth-forgot").hidden=true;
+      document.querySelector("#access-gate .gate-panel>small").textContent="No se ha guardado ninguna contraseña en esta página. Consulta README.md para activar las cuentas.";
+    }
+    updateChrome();return
+  }
+  currentUser=await getCurrentUser();
+  gate.hidden=Boolean(!(NUCLEO_CONFIG.requireAccount&&!currentUser));
+  if(currentUser)await hydrateAccount();
+  updateChrome();route();
+  await onAuthChange(async(authEvent,user)=>{
+    const changed=user?.id!==currentUser?.id;currentUser=user;
+    if(user&&changed)await hydrateAccount();
+    if(!user)state=structuredClone(initial);
+    gate.hidden=Boolean(!(NUCLEO_CONFIG.requireAccount&&!user));updateChrome();route();
+    if(authEvent==="PASSWORD_RECOVERY")document.querySelector("#password-dialog").showModal();
+  });
+}
+
+let authMode="login";
+function setAuthMode(mode){
+  authMode=mode;const register=mode==="register";
+  document.querySelector("#auth-login-tab").classList.toggle("active",!register);
+  document.querySelector("#auth-register-tab").classList.toggle("active",register);
+  document.querySelector("#auth-name-wrap").hidden=!register;
+  document.querySelector("#auth-name").required=register;
+  document.querySelector("#auth-password").autocomplete=register?"new-password":"current-password";
+  document.querySelector("#auth-submit").textContent=register?"Crear cuenta":"Iniciar sesión";
+  document.querySelector("#auth-forgot").hidden=register;
+}
+async function submitAuth(event){
+  event.preventDefault();
+  const email=document.querySelector("#auth-email").value.trim().toLowerCase();
+  const password=document.querySelector("#auth-password").value;
+  const displayName=document.querySelector("#auth-name").value.trim();
+  if(password.length<8)return toast("La contraseña debe tener al menos 8 caracteres");
+  try{
+    if(authMode==="register"){
+      if(displayName.length<2)return toast("Escribe un nombre visible");
+      const data=await signUpWithPassword({email,password,displayName});
+      if(!data.session){toast("Cuenta creada. Revisa tu correo para confirmarla.");setAuthMode("login");return}
+      currentUser=data.user;
+    }else{
+      const data=await signInWithPassword({email,password});currentUser=data.user;
+    }
+    await hydrateAccount();document.querySelector("#access-gate").hidden=true;updateChrome();route();toast("Sesión iniciada de forma segura");
+  }catch(error){toast(error.message||"No se pudo completar el acceso")}
+}
 
 document.documentElement.dataset.theme=localStorage.getItem("nucleo-theme")||"light";
 document.querySelector("#theme-toggle").onclick=()=>{const next=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=next;localStorage.setItem("nucleo-theme",next)};
@@ -143,7 +211,10 @@ document.querySelector("#menu-button").onclick=()=>document.querySelector("#side
 document.querySelector("#quick-focus").onclick=()=>{location.hash="agenda";setTimeout(()=>document.querySelector("#timer-toggle")?.click(),150)};
 document.querySelector("#new-event-button").onclick=openEventDialog;document.querySelector("#event-course").onchange=updateTopicSelect;document.querySelector("#event-form").onsubmit=submitEvent;
 document.querySelectorAll("#account-button,#profile-button").forEach(b=>b.onclick=()=>document.querySelector("#account-dialog").showModal());document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>document.querySelector(`#${b.dataset.close}`).close());
-document.querySelectorAll("#gate-google-button,#account-login").forEach(b=>b.onclick=()=>signInWithGoogle().catch(e=>toast(e.message)));
-document.querySelector("#account-logout").onclick=async()=>{await signOut();currentUser=null;document.querySelector("#account-dialog").close();if(NUCLEO_CONFIG.requireAccount)document.querySelector("#access-gate").hidden=false;updateChrome()};
+document.querySelector("#auth-login-tab").onclick=()=>setAuthMode("login");document.querySelector("#auth-register-tab").onclick=()=>setAuthMode("register");document.querySelector("#auth-form").onsubmit=submitAuth;
+document.querySelector("#auth-forgot").onclick=async()=>{const email=document.querySelector("#auth-email").value.trim();if(!email)return toast("Escribe primero tu correo");try{await resetPassword(email);toast("Si la cuenta existe, recibirás un enlace de recuperación")}catch(error){toast(error.message)}};
+document.querySelector("#password-form").onsubmit=async event=>{event.preventDefault();const password=document.querySelector("#new-password").value,confirmPassword=document.querySelector("#confirm-password").value;if(password.length<8)return toast("La contraseña debe tener al menos 8 caracteres");if(password!==confirmPassword)return toast("Las contraseñas no coinciden");try{await updatePassword(password);document.querySelector("#password-dialog").close();event.target.reset();toast("Contraseña actualizada")}catch(error){toast(error.message)}};
+document.querySelector("#account-login").onclick=()=>{if(!isSocialConfigured())return toast("Primero configura la URL y clave pública de Supabase");document.querySelector("#account-dialog").close();document.querySelector("#access-gate").hidden=false;setAuthMode("login")};
+document.querySelector("#account-logout").onclick=async()=>{await signOut();currentUser=null;state=structuredClone(initial);document.querySelector("#account-dialog").close();if(NUCLEO_CONFIG.requireAccount)document.querySelector("#access-gate").hidden=false;updateChrome();route()};
 document.querySelector("#reset-demo").onclick=()=>{if(!confirm("¿Reiniciar el progreso, la agenda y los planes?"))return;state=structuredClone(initial);save();document.querySelector("#account-dialog").close();route();toast("Datos reiniciados")};
 window.addEventListener("hashchange",route);initWeek();updateChrome();route();initializeAccount();

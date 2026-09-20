@@ -71,7 +71,7 @@
     <form id="event-form" class="event-form">
       <label>Tipo<select id="event-type" required><option value="task">Tarea</option><option value="project">Proyecto</option><option value="exam">Examen</option></select></label>
       <label>Título<input id="event-title" maxlength="100" required placeholder="Ej. Parcial de derivadas"></label>
-      <label>Curso<select id="event-course" required><option value="quimica">Química</option><option value="fisica">Física</option><option value="biologia">Biología</option><option value="calculo">Cálculo</option><option value="other">Otro curso</option></select></label>
+      <label>Curso<select id="event-course" required><option value="quimica">Química 2</option><option value="fisica">Física 1</option><option value="biologia">Biología General</option><option value="calculo">Cálculo 1</option><option value="other">Otro curso</option></select></label>
       <label id="other-course-wrap" hidden>Nombre del curso<input id="event-other-course" maxlength="60" placeholder="Nombre del curso"></label>
       <label id="topic-wrap">Tema<select id="event-topic"></select></label>
       <label>Fecha y hora<input id="event-date" type="datetime-local" required></label>
@@ -86,7 +86,7 @@
     <button class="modal-close" data-close="account-dialog" aria-label="Cerrar">×</button>
     <div class="modal-icon">●</div><p class="eyebrow">CUENTA PRIVADA</p><h2 id="account-title">Tus datos</h2>
     <p id="account-copy">En modo local, los datos viven en este navegador. Configura Supabase para sincronizarlos de forma privada entre dispositivos.</p>
-    <button class="primary full" id="account-login">Continuar con Google</button>
+    <button class="primary full" id="account-login">Iniciar sesión o registrarse</button>
     <button class="secondary full" id="account-logout" hidden>Cerrar sesión</button>
     <button class="secondary full" id="reset-demo">Reiniciar datos locales</button>
   </dialog>
@@ -96,14 +96,33 @@
     <div id="study-content"></div>
   </dialog>
 
+  <dialog id="password-dialog" class="modal">
+    <div class="modal-icon">⌁</div><p class="eyebrow">RECUPERACIÓN DE CUENTA</p><h2>Define una contraseña nueva</h2>
+    <form id="password-form" class="auth-form">
+      <label>Nueva contraseña<input id="new-password" type="password" autocomplete="new-password" minlength="8" required placeholder="Mínimo 8 caracteres"></label>
+      <label>Confirmar contraseña<input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <button class="primary full" type="submit">Actualizar contraseña</button>
+    </form>
+  </dialog>
+
   <div class="toast" id="toast" role="status"></div>
   <section class="access-gate" id="access-gate" hidden>
     <div class="gate-panel">
       <span class="brand-mark">N</span><p class="eyebrow">ACCESO ACADÉMICO</p>
-      <h1>Tu aprendizaje, en una cuenta</h1>
-      <p id="gate-description">Accede con Google para guardar de forma privada tu progreso, agenda y planes.</p>
-      <button class="google-button" id="gate-google-button"><span>G</span> Continuar con Google</button>
-      <small>Núcleo solo solicita identidad básica. No accede a Gmail ni a Google Drive.</small>
+      <h1>Accede a Núcleo</h1>
+      <p id="gate-description">Usa tu correo y contraseña para conservar de forma privada el progreso, la agenda y los planes.</p>
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab active" id="auth-login-tab" type="button">Iniciar sesión</button>
+        <button class="auth-tab" id="auth-register-tab" type="button">Crear cuenta</button>
+      </div>
+      <form id="auth-form" class="auth-form">
+        <label id="auth-name-wrap" hidden>Nombre visible<input id="auth-name" autocomplete="name" maxlength="40" placeholder="Tu nombre"></label>
+        <label>Correo electrónico<input id="auth-email" type="email" autocomplete="email" required placeholder="nombre@correo.com"></label>
+        <label>Contraseña<input id="auth-password" type="password" autocomplete="current-password" minlength="8" required placeholder="Mínimo 8 caracteres"></label>
+        <button class="primary full" id="auth-submit" type="submit">Iniciar sesión</button>
+      </form>
+      <button class="text-button auth-forgot" id="auth-forgot" type="button">Olvidé mi contraseña</button>
+      <small>La contraseña se procesa mediante Supabase Auth y nunca se guarda en el código ni en el navegador.</small>
     </div>
   </section>
   <script src="app.js" type="module"></script>
