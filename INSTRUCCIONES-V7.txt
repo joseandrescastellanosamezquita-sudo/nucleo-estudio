@@ -1,0 +1,10 @@
+ACTUALIZACIÓN DE GRUPOS V7
+
+1. En Supabase abre SQL Editor > New query.
+2. Copia y ejecuta todo MIGRACION-GRUPOS-V7.sql.
+3. En GitHub reemplaza index.html, app.js y social.js con los de esta carpeta.
+4. Confirma los cambios (Commit changes) y espera 1 a 3 minutos.
+5. Abre la página en una ventana privada o usa Ctrl+F5.
+6. Inicia sesión y vuelve a crear el grupo.
+
+No reemplaces config.js. Esta versión conserva tu configuración actual.

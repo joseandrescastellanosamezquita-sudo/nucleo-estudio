@@ -1,4 +1,4 @@
-import { NUCLEO_CONFIG } from "./config.js?v=6";
+import { NUCLEO_CONFIG } from "./config.js?v=7";
 
 let clientPromise;
 export const isSocialConfigured = () => Boolean(NUCLEO_CONFIG.supabaseUrl && NUCLEO_CONFIG.supabaseAnonKey);
@@ -106,12 +106,9 @@ export async function joinGroup(code) {
 export async function createStudyGroup(name) {
   const client = await getSocialClient();
   if (!client) throw new Error("El modo social todavía no está configurado.");
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) throw new Error("Debes iniciar sesión.");
-  const { data, error } = await client.from("groups")
-    .insert({ name: name.trim(), owner_id: user.id })
-    .select("id,name,invite_code")
-    .single();
+  const { data, error } = await client.rpc("create_study_group", {
+    requested_name: name.trim()
+  });
   if (error) throw error;
   return data;
 }

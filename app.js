@@ -3,9 +3,9 @@ import {
   getCurrentUser, signOut, onAuthChange,
   loadLearningState, saveLearningState, saveDiagnosticResults,
   createStudyGroup, joinGroup, getStudyGroup, listGroupPosts, publishGroupPost
-} from "./social.js?v=6";
-import { curriculum, diagnosticQuestions, allQuestions } from "./learning.js?v=6";
-import { NUCLEO_CONFIG } from "./config.js?v=6";
+} from "./social.js?v=7";
+import { curriculum, diagnosticQuestions, allQuestions } from "./learning.js?v=7";
+import { NUCLEO_CONFIG } from "./config.js?v=7";
 
 const subjects = {
   quimica: { name:"Química 2", cls:"chem", icon:"⬡", color:"#d86b48", method:"Representaciones múltiples + recuperación activa", description:"Termodinámica, cinética y equilibrio conforme al programa UVG 2026.", steps:["Predice antes de calcular","Traduce entre partículas, símbolos y evidencia","Resuelve sin mirar el ejemplo","Explica el error y vuelve a intentarlo"] },
