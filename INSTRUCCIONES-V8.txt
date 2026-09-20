@@ -1,0 +1,28 @@
+NÚCLEO ESTUDIO V8 — TEORÍA, PRÁCTICA E INTEGRANTES
+
+CAMBIO EN SUPABASE (proyecto existente)
+1. Abre Supabase > SQL Editor > New query.
+2. Copia todo MIGRACION-V8-INTEGRANTES.sql y presiona Run.
+3. Debe aparecer "Success. No rows returned".
+
+CAMBIO EN GITHUB PAGES
+1. Reemplaza estos cinco archivos del repositorio:
+   - index.html
+   - app.js
+   - learning.js
+   - social.js
+   - styles.css
+2. Conserva tu config.js actual. El incluido es la misma configuración conocida.
+3. Presiona Commit changes y espera de 1 a 3 minutos.
+4. Abre la página en una ventana privada o usa Ctrl+F5.
+
+COMPROBACIÓN
+- Entra a una asignatura y abre un macrotema.
+- Verifica las secciones "Teórica" y "Práctica" y sus documentos iniciales.
+- En "Diagnóstico", cada macrotema debe indicar mitad teoría y mitad práctica.
+- En "Grupo", la tarjeta "Integrantes" debe mostrar al administrador y a quienes
+  hayan ingresado correctamente con el código.
+
+IMPORTANTE
+- MIGRACION-V8-INTEGRANTES.sql es para una base ya configurada y no borra datos.
+- supabase-schema.sql es únicamente para instalar desde cero en otro proyecto.
